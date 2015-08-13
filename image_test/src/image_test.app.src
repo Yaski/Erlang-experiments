@@ -1,0 +1,12 @@
+{application, image_test,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { image_test_app, []}},
+  {env, []}
+ ]}.
