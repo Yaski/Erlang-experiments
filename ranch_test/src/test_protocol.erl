@@ -20,7 +20,8 @@ start_link(Ref, Socket, Transport, Opts) ->
 init(Ref, Socket, Transport, _Opts = []) ->
   io:format("accept~n"),
   ok = ranch:accept_ack(Ref),
-  loop(#state{socket = Socket, transport = Transport}).
+  loop(#state{socket = Socket, transport = Transport}),
+  io:format("protocol finished~n").
 
 loop(#state{route = 0} = State) ->
   loopMessages(State#state{route = 1});
@@ -30,9 +31,11 @@ loop(#state{route = 1} = State) ->
 loopMessages(State) ->
   receive
     {move, Session, Position} ->
-      send_move(State, Session, Position);
+      send_move(State, Session, Position),
+      loop(State);
     {destroy, Session} ->
-      send_destroy(State, Session);
+      send_destroy(State, Session),
+      loop(State);
     _ ->
       loop(State)
   after 100 ->
@@ -42,7 +45,7 @@ loopMessages(State) ->
 send_move(#state{transport = Transport, socket = Socket} = State, Session, Position) ->
   {X, Y, Z} = Position,
   Data = <<?R_POSITION:8, Session:8, X:8, Y:8, Z:8>>,
-  format_session(State, "Send move from ~p ~n", [Session]),
+%  format_session(State, "Send move from ~p ~n", [Session]),
   send_message(Transport, Socket, Data).
 
 send_destroy(#state{transport = Transport, socket = Socket} = State, Session) ->
@@ -69,7 +72,7 @@ process_query(State, Size = 0) ->
 process_query(#state{transport = Transport, socket = Socket} = State, Size) ->
   {ok, RawData} = Transport:recv(Socket, Size, 10000),
   <<Type:8/integer, Data/binary>> = RawData,
-  format_session(State, "Receive ~p Size ~p ~n", [Type, Size]),
+%  format_session(State, "Receive ~p Size ~p ~n", [Type, Size]),
   {NewState, Result} = process_query(State, Type, Data),
   send_message(Transport, Socket, Result),
   NewState.

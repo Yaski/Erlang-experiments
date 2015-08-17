@@ -127,8 +127,14 @@ handle_cast({destroy, Session}, State) ->
 
 handle_cast({move, Session, Position}, State) ->
   % Send other players
-  [Port ! {move, Session, Position} || #user{session = OtherSession, proc = Port} <- State#state.users, OtherSession =/= Session],
+  Message = {move, Session, Position},
+  [ssm(Port, Message) || #user{session = OtherSession, proc = Port} <- State#state.users, OtherSession =/= Session],
   {noreply, State}.
+
+ssm(Port, Message) ->
+%  io:format("Send message to handler ~p ~n", [Port]),
+  Port ! Message.
+
 
 %%--------------------------------------------------------------------
 %% @private

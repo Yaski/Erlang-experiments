@@ -19,12 +19,16 @@ public class TCPWorker : MonoBehaviour {
 
 	private byte session;
 
+	private const int MAX_FRAME_MESSAGES = 500;
+
 	void Awake() {
 //		DontDestroyOnLoad(this);
 	}
 	
 	// Use this for initialization
 	void Start() {
+		Application.runInBackground = true;
+
 		mainPlayer = NewPlayer ();
 
 		players = new Dictionary<int, Player> ();
@@ -70,15 +74,19 @@ public class TCPWorker : MonoBehaviour {
 				bytes[4] = (byte) z;
 				send(new Message(bytes));
 			}
-			yield return new WaitForSeconds(0.1f);
+			yield return new WaitForSeconds(0.05f);
 		}
 	}
 
 	// Update is called once per frame
 	void Update() {
-		var msg = processMessage();
-		if (msg != null) 
+		Message msg;
+		int numMessages = 0;
+		while ((msg = processMessage()) != null && numMessages < MAX_FRAME_MESSAGES)
+//		var msg = processMessage();
+//		if (msg != null) 
 		{
+			numMessages++;
 			// do some processing here, like update the player state
 //			string s = msg.content;
 
@@ -88,7 +96,7 @@ public class TCPWorker : MonoBehaviour {
 
 			var type = msg.content[0];
 			var sess = msg.content[1];
-			Debug.Log("{Received msg : " + type + "}");
+//			Debug.Log("{Received msg : " + type + "}");
 			switch (type)
 			{
 				case GameMessage.R_INIT:
