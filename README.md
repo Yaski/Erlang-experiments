@@ -1,6 +1,7 @@
 # Erlang-experiments
 Erlang experiments
 
-image_test Run with 
+image_test : experiments with img_erl library
 
-erl -pa ebin deps/erl_img/ebin deps/sync/ebin -sync growl none -s image_test
+
+ranch_test : TCP game server on ranch library

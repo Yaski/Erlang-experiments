@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/deps/erl_img/erl_img.iml" filepath="$PROJECT_DIR$/deps/erl_img/erl_img.iml" />
+      <module fileurl="file://$PROJECT_DIR$/image_test.iml" filepath="$PROJECT_DIR$/image_test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/deps/sync/sync.iml" filepath="$PROJECT_DIR$/deps/sync/sync.iml" />
+    </modules>
+  </component>
+</project>

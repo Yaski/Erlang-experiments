@@ -8,3 +8,9 @@ ebin
 rel/example_project
 .concrete/DEV_MODE
 .rebar
+
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+*.ipr
+*.iws
