@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/binary_codec_test.iml" filepath="$PROJECT_DIR$/binary_codec_test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/deps/erlydtl/erlydtl.iml" filepath="$PROJECT_DIR$/deps/erlydtl/erlydtl.iml" />
+      <module fileurl="file://$PROJECT_DIR$/deps/erlydtl/deps/eunit_formatters/eunit_formatters.iml" filepath="$PROJECT_DIR$/deps/erlydtl/deps/eunit_formatters/eunit_formatters.iml" />
+      <module fileurl="file://$PROJECT_DIR$/deps/neotoma/neotoma.iml" filepath="$PROJECT_DIR$/deps/neotoma/neotoma.iml" />
+      <module fileurl="file://$PROJECT_DIR$/deps/sync/sync.iml" filepath="$PROJECT_DIR$/deps/sync/sync.iml" />
+    </modules>
+  </component>
+</project>

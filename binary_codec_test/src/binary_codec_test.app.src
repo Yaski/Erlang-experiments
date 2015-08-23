@@ -1,0 +1,26 @@
+{application, binary_codec_test,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib,
+                  sync,
+				  erlydtl
+                 ]},
+  {mod, { binary_codec_test_app, []}},
+  {env, [
+    {codec_language_leex_file, "priv/codecs"},
+    {codec_language_yecc_file, "priv/codecs"},
+    {codec_language_neotoma_file, "priv/codecs"},
+    {codec_templates, [
+      {erlang, "priv/codecs"},
+      {csharp, "priv/codecs"}
+    ]},
+    {codec_src_dir, "priv/codecs"},
+    {codec_out_dir, "priv/codecs/output"},
+    {codec_language_parser, leex}
+%    {codec_language_parser, neotoma}
+  ]}
+ ]}.
