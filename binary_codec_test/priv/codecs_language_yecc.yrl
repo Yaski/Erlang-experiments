@@ -3,7 +3,7 @@ Nonterminals PROTOCOL_FILE PACKET.
 
 Terminals label params type_colon type new_line tuple_start tuple_end comma.
 
-Rootsymbol protocol_file.
+Rootsymbol PROTOCOL_FILE.
 
 
 PROTOCOL_FILE -> PACKET : ['$1'].
@@ -15,7 +15,6 @@ PACKET -> label params :
 
 %packet -> label params new_line variables : 
 %  pk('$1', '$2', '$4').
-
 
 %variables_sep -> comma .
 

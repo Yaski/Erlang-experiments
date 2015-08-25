@@ -12,6 +12,6 @@ clean:
 	@( $(REBAR) clean )
 
 run:
-	@( erl -pa ebin deps/*/ebin -s binary_codec_test )
+	@( erl -pa ebin deps/*/ebin )
 
 .PHONY: all deps compile clean run

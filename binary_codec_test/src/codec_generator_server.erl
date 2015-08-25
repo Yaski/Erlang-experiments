@@ -99,8 +99,17 @@ handle_call(_Any, _From, State) ->
 handle_cast(stop, State) ->
   {stop, State};
 
-handle_cast(Any, State) ->
-  io:format("~p implementation", [Any]),
+handle_cast({update_language}, State) ->
+  leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
+  yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl")),
+  codec_generator_server:generate_codecs(),
+  {noreply, State};
+
+handle_cast({generate_codecs}, State) ->
+  % find all codecs in directory
+  % read them and translate
+  % save result in output directory
+  io:format("generate_codecs~n"),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
