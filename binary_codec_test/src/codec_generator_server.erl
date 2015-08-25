@@ -15,7 +15,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {users = [], next_session = 10}).
+-record(state, {tokenizer_module, parser_module}).
 
 -export([
   update_language/0,
@@ -100,16 +100,23 @@ handle_cast(stop, State) ->
   {stop, State};
 
 handle_cast({update_language}, State) ->
-  leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
-  yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl")),
+  {ok, TokenizerFile} = leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
+  {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl")),
+
+  {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary]),
+  {module, TokenizerName} = code:load_binary(TokenizerName, TokenizerFile, TokenizerBinary),
+
+  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary]),
+  {module, ParserName} = code:load_binary(ParserName, ParserFile, ParserBinary),
+
   codec_generator_server:generate_codecs(),
-  {noreply, State};
+  {noreply, State#state{tokenizer_module = TokenizerName, parser_module = ParserName}};
 
 handle_cast({generate_codecs}, State) ->
-  % find all codecs in directory
-  % read them and translate
-  % save result in output directory
-  io:format("generate_codecs~n"),
+  Fun = fun(F, AccIn) -> io:format("File: ~s ~n", [F]), AccIn end,
+  filelib:fold_files(application:get_env(binary_codec_test, codec_src_dir, "priv"), ".*\.dsc", true, Fun, []),
+
+  io:format("~ngenerate_codecs~n"),
   {noreply, State}.
 
 %%--------------------------------------------------------------------
