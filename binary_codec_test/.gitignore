@@ -1,4 +1,5 @@
 priv/*.erl
+codecs_src/*.txt
 .eunit
 deps
 *.o

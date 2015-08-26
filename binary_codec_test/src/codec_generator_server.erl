@@ -113,11 +113,49 @@ handle_cast({update_language}, State) ->
   {noreply, State#state{tokenizer_module = TokenizerName, parser_module = ParserName}};
 
 handle_cast({generate_codecs}, State) ->
-  Fun = fun(F, AccIn) -> io:format("File: ~s ~n", [F]), AccIn end,
+  Fun = fun(F, AccIn) -> gen_codec(F, State), AccIn end,
   filelib:fold_files(application:get_env(binary_codec_test, codec_src_dir, "priv"), ".*\.dsc", true, Fun, []),
 
   io:format("~ngenerate_codecs~n"),
   {noreply, State}.
+
+gen_codec(File, State) ->
+  case State#state.tokenizer_module of
+    Module when Module =/= undefined ->
+      Tokens1 = scan_file(File, State#state.tokenizer_module),
+      OutName1 = filename:rootname(File) ++ ".tokens.txt",
+      file:write_file(OutName1, io_lib:fwrite("~p", [Tokens1])),
+      ParserModule = State#state.parser_module,
+      OutName2 = filename:rootname(File) ++ ".parser.txt",
+      Tokens2 = case ParserModule:parse(Tokens1) of
+        {ok, Tokens} -> Tokens;
+        {error, {Line_number, _Module, Message}} -> {error, {line, Line_number}, {message, Message}}
+      end,
+      file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
+    _ ->
+      Tokens = scan_file(File, State#state.parser_module),
+      OutName = filename:rootname(File) ++ ".parser.txt",
+      file:write_file(OutName, io_lib:fwrite("~p", [Tokens]))      
+  end,
+  ok.
+
+scan_file(FileName, Scanner) ->
+    {ok, InFile} = file:open(FileName, [read]),
+    Acc = loop_tokens(InFile, Scanner, []),
+    Result = lists:reverse(Acc),
+    file:close(InFile),
+    Result.
+
+loop_tokens(InFile, Scanner, Acc) ->
+    case io:request(InFile,{get_until,prompt,Scanner,token,[1]}) of
+        {ok,Token,_EndLine} ->
+            loop_tokens(InFile, Scanner, [Token | Acc]);
+        {error,token} ->
+            io:format("Error while scanning file with module ~s ~n", [Scanner]),
+            Acc;
+        {eof,_} ->
+            Acc
+    end.
 
 %%--------------------------------------------------------------------
 %% @private
