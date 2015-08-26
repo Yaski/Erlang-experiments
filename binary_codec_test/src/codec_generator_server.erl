@@ -120,24 +120,41 @@ handle_cast({generate_codecs}, State) ->
   {noreply, State}.
 
 gen_codec(File, State) ->
+  Templates = application:get_env(binary_codec_test, codec_templates, []),
   case State#state.tokenizer_module of
     Module when Module =/= undefined ->
       Tokens1 = scan_file(File, State#state.tokenizer_module),
       OutName1 = filename:rootname(File) ++ ".tokens.txt",
-      file:write_file(OutName1, io_lib:fwrite("~p", [Tokens1])),
+      ok = file:write_file(OutName1, io_lib:fwrite("~p", [Tokens1])),
       ParserModule = State#state.parser_module,
       OutName2 = filename:rootname(File) ++ ".parser.txt",
       Tokens2 = case ParserModule:parse(Tokens1) of
-        {ok, Tokens} -> Tokens;
-        {error, {Line_number, _Module, Message}} -> {error, {line, Line_number}, {message, Message}}
+        {ok, Tokens} ->
+          Tokens,
+          gen_codecs_by_templates(File, Tokens, Templates);
+        {error, {Line_number, _Module, Message}} ->
+          {error, {line, Line_number}, {message, Message}}
       end,
-      file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
+      ok = file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
     _ ->
       Tokens = scan_file(File, State#state.parser_module),
       OutName = filename:rootname(File) ++ ".parser.txt",
-      file:write_file(OutName, io_lib:fwrite("~p", [Tokens]))      
+      ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens])),
+      gen_codecs_by_templates(File, Tokens, Templates)
   end,
-  ok.
+  gen_codecs_by_templates(File, [], Templates).
+
+gen_codecs_by_templates(_File, _Tokens, []) -> ok;
+gen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
+  OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
+  io:format("Render template ~p ~s~n", [Key, OutName]),
+  {ok, List} = Module:render([
+    {name, "Johnny"},
+    {friends, [<<"Frankie Lee">>, <<"Judas Priest">>]},
+    {primes, [1, 2, "3", <<"5">>]}
+  ]),
+  ok = file:write_file(OutName, List),
+  gen_codecs_by_templates(File, Tokens, Rest).
 
 scan_file(FileName, Scanner) ->
     {ok, InFile} = file:open(FileName, [read]),

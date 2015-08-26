@@ -1,0 +1,16 @@
+public namespace yaski.codecs {
+
+	public class StubParser {
+		
+		public static void Parse(byte[] data, int length)
+		{
+			if (length < 1)
+			{
+				return;
+			}
+			byte type = data[0];
+		}
+		
+	}
+
+}
