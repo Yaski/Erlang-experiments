@@ -1,6 +1,21 @@
-client_login(nosession)
+module : #3F
+version : 0.1
 
-client_login_response(session)
-	color : {ubyte, ubyte, ubyte}
-	position : {float, float, float}
-	{}
+server_connect()
+
+server_say()
+    message : string
+
+server_close()
+
+client_init()
+    time : ubyte8
+    // color
+    ubyte
+    ubyte
+    ubyte
+
+client_receive_message()
+    time : ubyte8
+    user : ubyte
+    message : string

@@ -12,7 +12,7 @@ namespace yaski.codecs.chat {
 		
 		partial void OnReceiveMessage(Type1 arg)
 		{
-			Debug.Log("On Message");
+			Debug.Log("On Message From " + arg.user + " = " + arg.message);
 		}
 
 	}
