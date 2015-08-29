@@ -9,13 +9,12 @@ server_say()
 server_close()
 
 client_init()
-    time : ubyte8
-    // color
-    ubyte
-    ubyte
-    ubyte
+    time : int32
+    r : uint8
+    g : uint8
+    b : uint8
 
 client_receive_message()
-    time : ubyte8
-    user : ubyte
+    time : int32
+    user : int32
     message : string

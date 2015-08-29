@@ -103,10 +103,10 @@ handle_cast({update_language}, State) ->
   {ok, TokenizerFile} = leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
   {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl")),
 
-  {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary]),
+  {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary, report, debug_info]),
   {module, TokenizerName} = code:load_binary(TokenizerName, TokenizerFile, TokenizerBinary),
 
-  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary]),
+  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary, report, debug_info]),
   {module, ParserName} = code:load_binary(ParserName, ParserFile, ParserBinary),
 
   codec_generator_server:generate_codecs(),
