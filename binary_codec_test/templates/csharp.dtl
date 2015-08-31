@@ -1,16 +1,85 @@
-public namespace yaski.codecs {
+using System;
 
-	public class StubParser {
+public namespace yaski.codecs.{{codecname}}
+{
+{% with classname = codecname|add:"Client" %}
+	public partial class {{ classname }}
+	{
 		
-		public static void Parse(byte[] data, int length)
+		// -===== To Server =====-
+
+{% for o in packets %}
+        PACKET;
+{% endfor %}
+
+        // FOR EACH PACKET IN SERVER
+
+        // IF HAS DATA
+{% include "csharp/type.dtl" with scope="private" name="TYPE_S" %}
+		private void METHOD_SD(TYPE_S arg)
 		{
-			if (length < 1)
-			{
-				return;
+            var data = new byte[PACKET.DATA_LENGTH];
+            // FOR EACH PACKET.VAR
+{% include "csharp/encode.dtl" %}
+            // END
+			Send(this, TAG, data, PACKET.DATA_LENGTH);
+		}
+
+		// ELSE
+		private void METHOD_S()
+		{
+			Send(this, TAG);
+		}
+
+		// END
+
+		// -===== From Server =====-
+
+		// FOR EACH PACKET IN CLIENT
+
+        // IF HAS DATA
+{% include "csharp/type.dtl" with scope="public" name="TYPE" %}
+		partial void OnMETHOD_CD(TYPE arg);
+
+		// ELSE
+		partial void OnMETHOD_C();
+
+		// END
+
+		// -===== Implementation =====-
+
+		public static void Call({{ classname }} client, byte[] data, int length)
+		{
+			if (length > 0) {
+				switch (data[0])
+				{
+				// FOR EACH PACKET
+				case TYPE:
+    				// IF HAS DATA
+				    TYPE arg();
+{% include "csharp/decode.dtl" %}
+{% include "csharp/decode.dtl" %}
+{% include "csharp/decode.dtl" %}
+					client.OnMETHOD_CD(arg);
+					// ELSE
+					client.OnMETHOD_C();
+					// END
+					break;
+				}
+				// END
 			}
-			byte type = data[0];
+		}
+
+		public static void Send({{ classname }} client, byte type)
+		{
+            Send(client, type, new byte[1], 1);
+		}
+
+		public static void Send({{ classname }} client, byte type, byte[] data, int length)
+		{
+            data[0] = type;
 		}
 		
 	}
-
+{% endwith %}
 }

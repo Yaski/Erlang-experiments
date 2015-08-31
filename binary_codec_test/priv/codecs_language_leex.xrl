@@ -13,12 +13,9 @@ Rules.
 
 {Version} : {token, {version, TokenLine, parse_version(TokenChars)}}.
 
-client_{Label} : {token, {def, TokenLine, {client, string:substr(TokenChars, 8)}}}.
-server_{Label} : {token, {def, TokenLine, {server, string:substr(TokenChars, 8)}}}.
-
 {Label} : {token, {label, TokenLine, TokenChars}}.
 
-\([.]*\) : {token, {params, TokenLine, string:substr(TokenChars, 2, TokenLen - 2)}}.
+\(.*\) : {token, {params, TokenLine, parse_params(string:substr(TokenChars, 2, TokenLen - 2))}}.
 
 : : {token, {type_colon, TokenLine}}.
 
@@ -31,3 +28,6 @@ Erlang code.
 parse_version(TokenChars) -> {string:sub_word(TokenChars, 1, $.), string:sub_word(TokenChars, 2, $.)}.
 
 parse_hex(TokenChars) -> erlang:list_to_integer(string:substr(TokenChars, 2), 16).
+
+parse_params([]) -> noparams;
+parse_params(Params) -> list_to_atom(Params).

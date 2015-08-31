@@ -101,7 +101,7 @@ handle_cast(stop, State) ->
 
 handle_cast({update_language}, State) ->
   {ok, TokenizerFile} = leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
-  {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl")),
+  {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl"), [{verbose, true}]),
 
   {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary, report, debug_info]),
   {module, TokenizerName} = code:load_binary(TokenizerName, TokenizerFile, TokenizerBinary),
@@ -130,10 +130,10 @@ gen_codec(File, State) ->
       OutName2 = filename:rootname(File) ++ ".parser.txt",
       Tokens2 = case ParserModule:parse(Tokens1) of
         {ok, Tokens} ->
-          Tokens,
-          gen_codecs_by_templates(File, Tokens, Templates);
+          gen_codecs_by_templates(File, Tokens, Templates),
+          Tokens;
         {error, {Line_number, _Module, Message}} ->
-          {error, {line, Line_number}, {message, Message}}
+          {error, {line, Line_number}, Message}
       end,
       ok = file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
     _ ->
@@ -141,17 +141,16 @@ gen_codec(File, State) ->
       OutName = filename:rootname(File) ++ ".parser.txt",
       ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens])),
       gen_codecs_by_templates(File, Tokens, Templates)
-  end,
-  gen_codecs_by_templates(File, [], Templates).
+  end.
 
-gen_codecs_by_templates(_File, _Tokens, []) -> ok;
-gen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
+gen_codecs_by_templates(_One, _Two, _Three) -> ok.
+sgen_codecs_by_templates(_File, _Tokens, []) -> ok;
+sgen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
   OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
   io:format("Render template ~p ~s~n", [Key, OutName]),
   {ok, List} = Module:render([
-    {name, "Johnny"},
-    {friends, [<<"Frankie Lee">>, <<"Judas Priest">>]},
-    {primes, [1, 2, "3", <<"5">>]}
+    {codecname, filename:basename(File, ".dsc")},
+    {packets, Tokens}
   ]),
   ok = file:write_file(OutName, List),
   gen_codecs_by_templates(File, Tokens, Rest).

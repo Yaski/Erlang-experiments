@@ -1,0 +1,6 @@
+        {{scope}} struct {{name}}
+        {
+            // FOR EACH PACKET.VAR
+            public VAR_TYPE_IN_CSHARP VAR_NAME_IN_CASE;
+            // END
+        }
