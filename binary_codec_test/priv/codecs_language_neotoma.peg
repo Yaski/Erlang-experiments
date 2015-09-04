@@ -1,33 +1,67 @@
-Definitions.
+% header
+% signature
+% variables
 
-Type  = (uint8|int32|float|string)
-Label = ([a-z]+[_0-9a-z]*)
-HexNumber = (#[0-9A-F]+)
-Version = ([0-9]+(\.[0-9]+)?)
+file <- head:header body:(crlfs packet)* / ''
+`
+case Node of
+  [] -> [];
+  [""] -> [];
+  _ ->
+    Head = proplists:get_value(head, Node),
+    Tail = [R || [_,R] <- proplists:get_value(body, Node)],
+    [Head|Tail]
+end
+`;
 
-Rules.
+header <- module crlf version
+`
+  [module, version]
+`;
 
-{Type} : {token, {type, TokenLine, list_to_atom(TokenChars)}}.
+module <- 'module : #3F'
+`
+  {module, 126}
+`;
 
-{HexNumber} : {token, {number, TokenLine, parse_hex(TokenChars)}}.
+version <- 'version : 0.3'
+`
+  {version, 0, 3}
+`;
 
-{Version} : {token, {version, TokenLine, parse_version(TokenChars)}}.
+packet <- signature
+`
+  Node
+`;
 
-{Label} : {token, {label, TokenLine, TokenChars}}.
+signature <- packet_name '(' params:(!')' .)? ')'
+`
+  Node
+`;
 
-\(.*\) : {token, {params, TokenLine, parse_params(string:substr(TokenChars, 2, TokenLen - 2))}}.
+packet_name <- 'connect' / 'listen'
+`
+  Node
+`;
 
-: : {token, {type_colon, TokenLine}}.
+crlfs <- crlf (crlf)*
+crlf <- [\r]? [\n] ~;
 
-[\n\r]+ : {token, {new_line, TokenLine}}.
-
-[\s\t]+ : skip_token.
-
-Erlang code.
-
-parse_version(TokenChars) -> {string:sub_word(TokenChars, 1, $.), string:sub_word(TokenChars, 2, $.)}.
-
-parse_hex(TokenChars) -> erlang:list_to_integer(string:substr(TokenChars, 2), 16).
-
-parse_params([]) -> noparams;
-parse_params(Params) -> list_to_atom(Params).
+%row <- head:field tail:(field_sep field)* / ''
+%`
+%case Node of
+%  [] -> [];
+%  [""] -> [];
+%  _ ->
+%    Head = proplists:get_value(head, Node),
+%    Tail = [F || [_,F] <- proplists:get_value(tail, Node)],
+%    [Head|Tail]
+%end
+%`;
+%field <- quoted_field / (!field_sep !crlf .)* `iolist_to_binary(Node)`;
+%quoted_field <- '"' string:('""' / (!'"' .))* '"'
+%`
+%  String = proplists:get_value(string, Node),
+%  re:replace(String, "[\"]{2}", "\"",[global, {return, binary}])
+%`;
+%field_sep <- ',' ~;
