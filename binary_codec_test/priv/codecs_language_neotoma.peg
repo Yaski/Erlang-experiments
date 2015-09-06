@@ -1,67 +1,74 @@
-% header
-% signature
-% variables
-
-file <- head:header body:(crlfs packet)* / ''
+file <- head:header packets:(crlf packet)* / ''
 `
 case Node of
   [] -> [];
   [""] -> [];
   _ ->
-    Head = proplists:get_value(head, Node),
-    Tail = [R || [_,R] <- proplists:get_value(body, Node)],
-    [Head|Tail]
+    [Head1, Head2] = proplists:get_value(head, Node),
+    Tail = [R || [_,R] <- proplists:get_value(packets, Node)],
+    [Head1, Head2, {packets, Tail}]
 end
 `;
 
 header <- module crlf version
 `
-  [module, version]
+  [Val1, _, Val2] = Node,
+  [Val1, Val2]
 `;
 
-module <- 'module : #3F'
+module <- 'module' sp? ':' sp? hex:('#' [0-9A-F]+)
 `
-  {module, 126}
+  HexVal = binary_to_list(iolist_to_binary(proplists:get_value(hex, Node))),
+  Hex = erlang:list_to_integer(string:substr(HexVal, 2), 16),
+  {module, Hex}
 `;
 
-version <- 'version : 0.3'
+version <- 'version : ' major:digit minor:('.' digit)?
 `
-  {version, 0, 3}
+  [Major] = proplists:get_value(major, Node),
+  [_ | [[Minor]]] = proplists:get_value(minor, Node),
+  {version, Major, Minor}
 `;
 
-packet <- signature
+packet <- signature variables:(crlf variable)*
 `
-  Node
+  [[Name, Params] | _Tail] = Node,
+
+  Vars = [R || [_,R] <- proplists:get_value(variables, Node)],
+  {packet, [Name, Params, {variables, Vars}]}
 `;
 
-signature <- packet_name '(' params:(!')' .)? ')'
+signature <- name:label '(' params:(!')' .)* ')'
 `
-  Node
+  [
+    {name, proplists:get_value(name, Node)},
+    {params, iolist_to_binary(proplists:get_value(params, Node))}
+  ]
 `;
 
-packet_name <- 'connect' / 'listen'
+variable <- sp? name:label sp? ':' sp? type:type 
 `
-  Node
+  {variable, [
+    {name, proplists:get_value(name, Node)},
+    {type, proplists:get_value(type, Node)}
+  ]}
 `;
 
-crlfs <- crlf (crlf)*
-crlf <- [\r]? [\n] ~;
+type <- 'uint8' / 'int32' / 'float' / 'string'
+`
+   list_to_atom(binary_to_list(iolist_to_binary(Node)))
+`;
 
-%row <- head:field tail:(field_sep field)* / ''
-%`
-%case Node of
-%  [] -> [];
-%  [""] -> [];
-%  _ ->
-%    Head = proplists:get_value(head, Node),
-%    Tail = [F || [_,F] <- proplists:get_value(tail, Node)],
-%    [Head|Tail]
-%end
-%`;
-%field <- quoted_field / (!field_sep !crlf .)* `iolist_to_binary(Node)`;
-%quoted_field <- '"' string:('""' / (!'"' .))* '"'
-%`
-%  String = proplists:get_value(string, Node),
-%  re:replace(String, "[\"]{2}", "\"",[global, {return, binary}])
-%`;
-%field_sep <- ',' ~;
+label <- [a-z]+ [0-9a-z]* 
+`
+  iolist_to_binary(Node)
+`;
+
+digit <- [0-9]+ ~;
+
+crlf <- ([\r]? [\n])+ 
+`
+  crlf
+`;
+
+sp <- [\s\t]* ~;

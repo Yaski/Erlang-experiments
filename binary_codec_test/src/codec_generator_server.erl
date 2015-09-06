@@ -100,15 +100,7 @@ handle_cast(stop, State) ->
   {stop, State};
 
 handle_cast({update_language}, State) ->
-  {ok, TokenizerFile} = leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
-  {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl"), [{verbose, true}]),
-
-  {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary, report, debug_info]),
-  {module, TokenizerName} = code:load_binary(TokenizerName, TokenizerFile, TokenizerBinary),
-
-  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary, report, debug_info]),
-  {module, ParserName} = code:load_binary(ParserName, ParserFile, ParserBinary),
-
+  {TokenizerName, ParserName} = generate_language(application:get_env(binary_codec_test, codec_language_parser, leex)),
   codec_generator_server:generate_codecs(),
   {noreply, State#state{tokenizer_module = TokenizerName, parser_module = ParserName}};
 
@@ -118,6 +110,24 @@ handle_cast({generate_codecs}, State) ->
 
   io:format("~ngenerate_codecs~n"),
   {noreply, State}.
+
+generate_language(leex) ->
+  {ok, TokenizerFile} = leex:file(application:get_env(binary_codec_test, codec_language_leex_file, "src/codec_leex.xrl")),
+  {ok, ParserFile} = yecc:file(application:get_env(binary_codec_test, codec_language_yecc_file, "src/codec_yecc.yrl"), [{verbose, true}]),
+
+  {ok, TokenizerName, TokenizerBinary} = compile:file(TokenizerFile, [binary, report, debug_info]),
+  {module, TokenizerName} = code:load_binary(TokenizerName, TokenizerFile, TokenizerBinary),
+
+  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary, report, debug_info]),
+  {module, ParserName} = code:load_binary(ParserName, ParserFile, ParserBinary),
+  {TokenizerName, ParserName};
+generate_language(neotoma) ->
+  SrcParser = application:get_env(binary_codec_test, codec_language_neotoma_file, "src/codec_neotoma.peg"),
+  ok = neotoma:file(SrcParser, [{verbose, true}]),
+  ParserFile = filename:rootname(SrcParser) ++ ".erl",
+  {ok, ParserName, ParserBinary} = compile:file(ParserFile, [binary, report, debug_info]),
+  {module, ParserName} = code:load_binary(ParserName, ParserFile, ParserBinary),
+  {undefined, ParserName}.
 
 gen_codec(File, State) ->
   Templates = application:get_env(binary_codec_test, codec_templates, []),
@@ -137,7 +147,7 @@ gen_codec(File, State) ->
       end,
       ok = file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
     _ ->
-      Tokens = scan_file(File, State#state.parser_module),
+      Tokens = (State#state.parser_module):file(File),
       OutName = filename:rootname(File) ++ ".parser.txt",
       ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens])),
       gen_codecs_by_templates(File, Tokens, Templates)
