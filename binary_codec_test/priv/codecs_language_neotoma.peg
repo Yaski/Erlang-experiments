@@ -1,8 +1,9 @@
-file <- head:header packets:(crlf packet)* / ''
+file <- head:header packets:(crlf packet)* crlf? / '' crlf?
 `
 case Node of
   [] -> [];
   [""] -> [];
+  ["", crlf] -> [];
   _ ->
     [Head1, Head2] = proplists:get_value(head, Node),
     Tail = [R || [_,R] <- proplists:get_value(packets, Node)],
@@ -25,9 +26,13 @@ module <- 'module' sp? ':' sp? hex:('#' [0-9A-F]+)
 
 version <- 'version : ' major:digit minor:('.' digit)?
 `
-  [Major] = proplists:get_value(major, Node),
-  [_ | [[Minor]]] = proplists:get_value(minor, Node),
-  {version, Major, Minor}
+  Major = iolist_to_binary(proplists:get_value(major, Node)),
+  Minor = case proplists:get_value(minor, Node) of
+    [_Head, Tail] ->
+      iolist_to_binary(Tail);
+    _ -> <<>>
+  end,
+  {version, [Major, Minor]}
 `;
 
 packet <- signature variables:(crlf variable)*
@@ -35,7 +40,7 @@ packet <- signature variables:(crlf variable)*
   [[Name, Params] | _Tail] = Node,
 
   Vars = [R || [_,R] <- proplists:get_value(variables, Node)],
-  {packet, [Name, Params, {variables, Vars}]}
+  [Name, Params, {variables, Vars}]
 `;
 
 signature <- name:label '(' params:(!')' .)* ')'
@@ -48,10 +53,10 @@ signature <- name:label '(' params:(!')' .)* ')'
 
 variable <- sp? name:label sp? ':' sp? type:type 
 `
-  {variable, [
+  [
     {name, proplists:get_value(name, Node)},
     {type, proplists:get_value(type, Node)}
-  ]}
+  ]
 `;
 
 type <- 'uint8' / 'int32' / 'float' / 'string'

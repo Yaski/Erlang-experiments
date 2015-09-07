@@ -153,14 +153,14 @@ gen_codec(File, State) ->
       gen_codecs_by_templates(File, Tokens, Templates)
   end.
 
-gen_codecs_by_templates(_One, _Two, _Three) -> ok.
-sgen_codecs_by_templates(_File, _Tokens, []) -> ok;
-sgen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
+%gen_codecs_by_templates(_One, _Two, _Three) -> ok.
+gen_codecs_by_templates(_File, _Tokens, []) -> ok;
+gen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
   OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
   io:format("Render template ~p ~s~n", [Key, OutName]),
   {ok, List} = Module:render([
-    {codecname, filename:basename(File, ".dsc")},
-    {packets, Tokens}
+    {codecname, filename:basename(File, ".dsc")} |
+    Tokens
   ]),
   ok = file:write_file(OutName, List),
   gen_codecs_by_templates(File, Tokens, Rest).

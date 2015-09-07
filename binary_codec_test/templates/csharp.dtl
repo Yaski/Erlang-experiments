@@ -8,8 +8,11 @@ public namespace yaski.codecs.{{codecname}}
 		
 		// -===== To Server =====-
 
-{% for o in packets %}
+{% for p in packets %}
         PACKET;
+        {{ p.name }}
+        {{ p.params }}
+        {{ p.variables }}
 {% endfor %}
 
         // FOR EACH PACKET IN SERVER
