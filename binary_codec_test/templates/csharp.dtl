@@ -2,13 +2,13 @@ using System;
 
 public namespace yaski.codecs.{{codecname}}
 {
-{% with classname = codecname|add:"Client" %}
+{% with classname = codecname|pascal_case|add:"Client" %}
 	public partial class {{ classname }}
 	{
 		
 		// -===== To Server =====-
 
-{% for p in packets %}
+{% for p in packets|filter_packets:"server" %}
         PACKET;
         {{ p.name }}
         {{ p.params }}
