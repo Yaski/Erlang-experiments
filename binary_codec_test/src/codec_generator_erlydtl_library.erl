@@ -18,13 +18,14 @@ filter_packets(Value, Params) ->
     Value
   ).
 
+pascal_case(Value) when is_binary(Value) -> pascal_case(binary_to_list(Value));
+
 pascal_case(Value) ->
   Str = string:tokens(Value, "_"),
   Val = [[string:to_upper(X) | Y] || [X | Y] <- Str],
   string:join(Val, "").
 
-snake_case(Value) when is_binary(Value) ->
-  string:to_lower(binary_to_list(Value));
+snake_case(Value) when is_binary(Value) -> snake_case(binary_to_list(Value));
 
 snake_case(Value) when is_list(Value) ->
   string:to_lower(Value).

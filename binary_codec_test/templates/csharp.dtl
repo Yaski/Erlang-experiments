@@ -7,34 +7,31 @@ public namespace yaski.codecs.{{codecname}}
 	{
 		
 		// -===== To Server =====-
+		private byte[] buffer = new byte[256];
 
 {% for p in packets|filter_packets:"server" %}
-        PACKET;
-        {{ p.name }}
-        {{ p.params }}
-        {{ p.variables }}
+{% with packetname = p.name|pascal_case %}
+	{% if p.variables %}
+
+{% include "csharp/type.dtl" with scope="private" name=packetname|add:"Type" %}
+		private void {{packetname}}({{packetname|add:"Type"}} arg)
+		{
+            int offset = 1;
+	    {% for v in p.variables %}
+    		offset = Encode(buffer, offset, arg.{{v.name}});
+		{% endfor %}
+			Send(this, {{p.tag}}, buffer, offset);
+		}
+
+  {% else %}
+		private void {{packetname}}()
+		{
+			Send(this, {{p.tag}});
+		}
+  {% endif %}
+
+{% endwith %}
 {% endfor %}
-
-        // FOR EACH PACKET IN SERVER
-
-        // IF HAS DATA
-{% include "csharp/type.dtl" with scope="private" name="TYPE_S" %}
-		private void METHOD_SD(TYPE_S arg)
-		{
-            var data = new byte[PACKET.DATA_LENGTH];
-            // FOR EACH PACKET.VAR
-{% include "csharp/encode.dtl" %}
-            // END
-			Send(this, TAG, data, PACKET.DATA_LENGTH);
-		}
-
-		// ELSE
-		private void METHOD_S()
-		{
-			Send(this, TAG);
-		}
-
-		// END
 
 		// -===== From Server =====-
 
@@ -75,12 +72,54 @@ public namespace yaski.codecs.{{codecname}}
 
 		public static void Send({{ classname }} client, byte type)
 		{
-            Send(client, type, new byte[1], 1);
+            Send(client, type, buffer, 1);
 		}
 
 		public static void Send({{ classname }} client, byte type, byte[] data, int length)
 		{
             data[0] = type;
+		}
+
+		private static int Encode(byte[] data, int offset, byte value)
+		{
+			data[offset] = value;
+			return offset + 1;
+		}
+
+		private static int Encode(byte[] data, int offset, byte[] value)
+		{
+			int len = value.Length;
+			offset = Encode(data, offset, len);
+			Array.Copy(data, offset, value, 0, len)
+			return offset + len;
+		}
+
+		private static int Encode(byte[] data, int offset, int value)
+		{
+			if (BitConverter.IsLittleEndian)			
+			{
+				data[offset] = (byte)(value >> 24);
+				data[offset + 1] = (byte)(value >> 16);
+				data[offset + 2] = (byte)(value >> 8);
+				data[offset + 3] = (byte)(value);
+			}
+			else
+			{
+				data[offset + 1] = (byte)(value);
+				data[offset + 2] = (byte)(value >> 8);
+				data[offset + 3] = (byte)(value >> 16);
+				data[offset + 4] = (byte)(value >> 24);
+			}
+			return offset + 4;
+		}
+
+		private static int Encode(byte[] data, int offset, float value)
+		{
+			byte[] bytes = BitConverter.GetBytes(value);
+			if (BitConverter.IsLittleEndian)
+			    Array.Reverse(bytes);
+			Array.Copy(data, offset, bytes, 0, 4)
+			return offset + 4;
 		}
 		
 	}

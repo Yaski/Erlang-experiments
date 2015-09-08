@@ -59,7 +59,7 @@ variable <- sp? name:label sp? ':' sp? type:type
   ]
 `;
 
-type <- 'uint8' / 'int32' / 'float' / 'string'
+type <- 'uint8[]' / 'uint8' / 'int32' / 'float'
 `
    list_to_atom(binary_to_list(iolist_to_binary(Node)))
 `;

@@ -147,10 +147,15 @@ gen_codec(File, State) ->
       end,
       ok = file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
     _ ->
-      Tokens = (State#state.parser_module):file(File),
       OutName = filename:rootname(File) ++ ".parser.txt",
-      ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens])),
-      gen_codecs_by_templates(File, Tokens, Templates)
+      Tokens2 = case (State#state.parser_module):file(File) of
+        Tokens when is_list(Tokens) ->
+          gen_codecs_by_templates(File, Tokens, Templates),
+          Tokens;
+        {_, _, Message} ->
+          [{syntax_error}, Message]
+      end,
+      ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens2]))
   end.
 
 %gen_codecs_by_templates(_One, _Two, _Three) -> ok.
@@ -158,12 +163,26 @@ gen_codecs_by_templates(_File, _Tokens, []) -> ok;
 gen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
   OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
   io:format("Render template ~p ~s~n", [Key, OutName]),
+  Packets = generate_packets_tags(proplists:get_value(packets, Tokens)),
+  NewTokens = [{packets, Packets} | proplists:delete(packets, Tokens)],
   {ok, List} = Module:render([
     {codecname, filename:basename(File, ".dsc")} |
-    Tokens
+    NewTokens
   ]),
-  ok = file:write_file(OutName, List),
+  OutList = remove_empty_lines(List),
+  ok = file:write_file(OutName, OutList),
   gen_codecs_by_templates(File, Tokens, Rest).
+
+generate_packets_tags(Packets) -> lists:reverse(generate_packets_tags(Packets, 1, [])).
+generate_packets_tags([], _Index, Acc) -> Acc;
+generate_packets_tags([Packet | Rest], Index, Acc) ->
+  NewPacket = [{tag, Index} | Packet],
+  generate_packets_tags(Rest, Index + 1, [NewPacket | Acc]).
+
+remove_empty_lines(List) ->
+  {ok,MP} = re:compile("^(?:[\t ]*(?:\r?\n|\r))+", [multiline, {newline, anycrlf}]),
+  Lines = re:split(iolist_to_binary(List), MP, [{return, list}, trim]),
+  string:join(Lines, "\r\n").
 
 scan_file(FileName, Scanner) ->
     {ok, InFile} = file:open(FileName, [read]),
