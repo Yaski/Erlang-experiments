@@ -13,7 +13,7 @@ public namespace yaski.codecs.{{codecname}}
 {% with packetname = p.name|pascal_case %}
 	{% if p.variables %}
 
-{% include "csharp/type.dtl" with scope="private" name=packetname|add:"Type" %}
+{% include "csharp/type.dtl" with scope="private" name=packetname|add:"Type" vars=p.variables %}
 		private void {{packetname}}({{packetname|add:"Type"}} arg)
 		{
             int offset = 1;

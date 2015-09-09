@@ -1,6 +1,14 @@
         {{scope}} struct {{name}}
         {
-            // FOR EACH PACKET.VAR
-            public VAR_TYPE_IN_CSHARP VAR_NAME_IN_CASE;
-            // END
+	    {% for var in vars %}
+        	{% if var.type == "uint8" %}
+            public byte {{var.name}};
+			{% elif var.type == "int32" %}
+			public int {{var.name}};
+			{% elif var.type == "float" %}
+			public float {{var.name}};
+			{% elif var.type == "uint8[]" %}
+			public byte[] {{var.name}};
+			{% endif %}
+		{% endfor %}
         }

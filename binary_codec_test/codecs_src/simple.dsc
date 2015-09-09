@@ -5,6 +5,8 @@ connect(server)
 
 say(server)
     user : uint8
+    setting : int32
+    distance : float
     message : uint8[]
 
 listen(client)
