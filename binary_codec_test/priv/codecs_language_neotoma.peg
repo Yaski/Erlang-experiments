@@ -64,7 +64,7 @@ type <- 'uint8[]' / 'uint8' / 'int32' / 'float'
    list_to_atom(binary_to_list(iolist_to_binary(Node)))
 `;
 
-label <- [a-z]+ [0-9a-z]* 
+label <- [a-z]+ [_0-9a-z]* 
 `
   iolist_to_binary(Node)
 `;

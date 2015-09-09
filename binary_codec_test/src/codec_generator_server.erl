@@ -140,7 +140,7 @@ gen_codec(File, State) ->
       OutName2 = filename:rootname(File) ++ ".parser.txt",
       Tokens2 = case ParserModule:parse(Tokens1) of
         {ok, Tokens} ->
-          gen_codecs_by_templates(File, Tokens, Templates),
+          gen_codecs_by_templates(File, prepare_tokens(File, Tokens), Templates),
           Tokens;
         {error, {Line_number, _Module, Message}} ->
           {error, {line, Line_number}, Message}
@@ -150,7 +150,7 @@ gen_codec(File, State) ->
       OutName = filename:rootname(File) ++ ".parser.txt",
       Tokens2 = case (State#state.parser_module):file(File) of
         Tokens when is_list(Tokens) ->
-          gen_codecs_by_templates(File, Tokens, Templates),
+          gen_codecs_by_templates(File, prepare_tokens(File, Tokens), Templates),
           Tokens;
         {_, _, Message} ->
           [{syntax_error}, Message]
@@ -158,26 +158,38 @@ gen_codec(File, State) ->
       ok = file:write_file(OutName, io_lib:fwrite("~p", [Tokens2]))
   end.
 
-%gen_codecs_by_templates(_One, _Two, _Three) -> ok.
-gen_codecs_by_templates(_File, _Tokens, []) -> ok;
-gen_codecs_by_templates(File, Tokens, [{Key, Module, Ext} | Rest]) ->
-  OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
-  io:format("Render template ~p ~s~n", [Key, OutName]),
+prepare_tokens(File, Tokens) ->
   Packets = generate_packets_tags(proplists:get_value(packets, Tokens)),
   NewTokens = [{packets, Packets} | proplists:delete(packets, Tokens)],
-  {ok, List} = Module:render([
-    {codecname, filename:basename(File, ".dsc")} |
-    NewTokens
-  ]),
-  OutList = remove_empty_lines(List),
-  ok = file:write_file(OutName, OutList),
-  gen_codecs_by_templates(File, Tokens, Rest).
+  [{codecname, filename:basename(File, ".dsc")} | NewTokens].
 
 generate_packets_tags(Packets) -> lists:reverse(generate_packets_tags(Packets, 1, [])).
 generate_packets_tags([], _Index, Acc) -> Acc;
 generate_packets_tags([Packet | Rest], Index, Acc) ->
   NewPacket = [{tag, Index} | Packet],
   generate_packets_tags(Rest, Index + 1, [NewPacket | Acc]).
+
+%gen_codecs_by_templates(_One, _Two, _Three) -> ok.
+gen_codecs_by_templates(_File, _Tokens, []) -> ok;
+gen_codecs_by_templates(File, Tokens, [{Key, Module, Filename} | Rest]) ->
+%  OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
+  OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), gen_filename_by_template(Filename, Tokens)]),
+  io:format("Render template ~p ~s~n", [Key, OutName]),
+  {ok, List} = Module:render(Tokens),
+  OutList = remove_empty_lines(List),
+  ok = file:write_file(OutName, OutList),
+  gen_codecs_by_templates(File, Tokens, Rest).
+
+gen_filename_by_template(Template, Tokens) ->
+  {ok, Module} = erlydtl:compile_template(Template, codec_filename_template, [
+    {default_libraries, [codec_generator_erlydtl_library]},
+    {libraries, [
+      {codec_generator_erlydtl_library, codec_generator_erlydtl_library}
+    ]},
+    {out_dir, false}
+  ]),
+  {ok, List} = Module:render(Tokens),
+  binary_to_list(iolist_to_binary(List)).
 
 remove_empty_lines(List) ->
   {ok,MP} = re:compile("^(?:[\t ]*(?:\r?\n|\r))+", [multiline, {newline, anycrlf}]),

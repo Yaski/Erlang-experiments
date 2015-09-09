@@ -1,13 +1,13 @@
 using System;
 
-public namespace yaski.codecs.{{codecname}}
+namespace yaski.codecs.{{codecname|package_case}}
 {
 {% with classname = codecname|pascal_case|add:"Client" %}
 	public partial class {{ classname }}
 	{
 		
 		// -===== To Server =====-
-		private byte[] buffer = new byte[256];
+		private static byte[] buffer = new byte[512];
 
 {% for p in packets|filter_packets:"server" %}
 {% with packetname = p.name|pascal_case %}
@@ -35,16 +35,16 @@ public namespace yaski.codecs.{{codecname}}
 
 		// -===== From Server =====-
 
-		// FOR EACH PACKET IN CLIENT
-
-        // IF HAS DATA
-{% include "csharp/type.dtl" with scope="public" name="TYPE" %}
-		partial void OnMETHOD_CD(TYPE arg);
-
-		// ELSE
-		partial void OnMETHOD_C();
-
-		// END
+{% for p in packets|filter_packets:"client" %}
+{% with packetname = p.name|pascal_case %}
+	{% if p.variables %}
+{% include "csharp/type.dtl" with scope="public" name=packetname|add:"Type" vars=p.variables %}
+		partial void On{{packetname}}({{packetname|add:"Type"}} arg);
+	{% else %}
+		partial void On{{packetname}}();
+	{% endif %}
+{% endwith %}
+{% endfor %}
 
 		// -===== Implementation =====-
 
@@ -53,22 +53,36 @@ public namespace yaski.codecs.{{codecname}}
 			if (length > 0) {
 				switch (data[0])
 				{
-				// FOR EACH PACKET
-				case TYPE:
-    				// IF HAS DATA
-				    TYPE arg();
-{% include "csharp/decode.dtl" %}
-{% include "csharp/decode.dtl" %}
-{% include "csharp/decode.dtl" %}
-					client.OnMETHOD_CD(arg);
-					// ELSE
-					client.OnMETHOD_C();
-					// END
+{% for p in packets|filter_packets:"client" %}
+{% with packetname = p.name|pascal_case %}
+				case {{p.tag}}:
+	{% if p.variables %}
+					client.On{{packetname}}(Parse{{p.name|pascal_case|add:"Type"}}(data, length));
+	{% else %}
+					client.On{{packetname}}();
+	{% endif %}
 					break;
+{% endwith %}
+{% endfor %}
 				}
-				// END
 			}
 		}
+
+{% for p in packets|filter_packets:"client" %}
+{% with typename = p.name|pascal_case|add:"Type" %}
+{% if p.variables %}
+		private static {{typename}} Parse{{typename}}(byte[] data, int length)
+		{
+			{{typename}} arg;
+			int offset = 1;
+	    {% for v in p.variables %}
+	    	offset = Decode(data, offset, out arg.{{v.name}});
+		{% endfor %}
+			return arg;
+		}
+{% endif %}
+{% endwith %}
+{% endfor %}
 
 		public static void Send({{ classname }} client, byte type)
 		{
@@ -78,6 +92,9 @@ public namespace yaski.codecs.{{codecname}}
 		public static void Send({{ classname }} client, byte type, byte[] data, int length)
 		{
             data[0] = type;
+
+            // module = {{module}}
+            // version = {{version|join:"."}}
 		}
 
 		private static int Encode(byte[] data, int offset, byte value)
@@ -89,8 +106,9 @@ public namespace yaski.codecs.{{codecname}}
 		private static int Encode(byte[] data, int offset, byte[] value)
 		{
 			int len = value.Length;
+			len = len & 0xFF;	// max 256 bytes
 			offset = Encode(data, offset, len);
-			Array.Copy(data, offset, value, 0, len)
+			Array.Copy(value, 0, buffer, offset, len);
 			return offset + len;
 		}
 
@@ -105,10 +123,10 @@ public namespace yaski.codecs.{{codecname}}
 			}
 			else
 			{
-				data[offset + 1] = (byte)(value);
-				data[offset + 2] = (byte)(value >> 8);
-				data[offset + 3] = (byte)(value >> 16);
-				data[offset + 4] = (byte)(value >> 24);
+				data[offset] = (byte)(value);
+				data[offset + 1] = (byte)(value >> 8);
+				data[offset + 2] = (byte)(value >> 16);
+				data[offset + 3] = (byte)(value >> 24);
 			}
 			return offset + 4;
 		}
@@ -118,10 +136,55 @@ public namespace yaski.codecs.{{codecname}}
 			byte[] bytes = BitConverter.GetBytes(value);
 			if (BitConverter.IsLittleEndian)
 			    Array.Reverse(bytes);
-			Array.Copy(data, offset, bytes, 0, 4)
+			Array.Copy(data, offset, bytes, 0, 4);
 			return offset + 4;
 		}
-		
+
+		private static int Decode(byte[] data, int offset, out byte value)
+		{
+			value = data[offset];
+			return offset + 1;
+		}
+
+		private static int Decode(byte[] data, int offset, out byte[] value)
+		{
+			int len;
+			offset = Decode(data, offset, out len);
+			len = len & 0xFF;		// max 256 bytes
+			value = new byte[len];
+			Array.Copy(data, offset, value, 0, len);
+			return offset + len;
+		}
+
+		private static int Decode(byte[] data, int offset, out int value)
+		{
+			value = 0;
+			if (BitConverter.IsLittleEndian)
+			{
+				value |= data[offset] << 24;
+				value |= data[offset + 1] << 16;
+				value |= data[offset + 2] << 8;
+				value |= data[offset + 3];
+			}
+			else
+			{
+				value |= data[offset];
+				value |= data[offset + 1] << 8;
+				value |= data[offset + 2] << 16;
+				value |= data[offset + 3] << 24;
+			}
+			return offset + 4;
+		}
+
+		private static int Decode(byte[] data, int offset, out float value)
+		{
+			if (BitConverter.IsLittleEndian)
+			    Array.Reverse(data, offset, 4);
+			value = BitConverter.ToSingle(data, offset);
+			if (BitConverter.IsLittleEndian)
+			    Array.Reverse(data, offset, 4);
+			return offset + 4;
+		}
 	}
 {% endwith %}
 }

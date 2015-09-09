@@ -13,7 +13,7 @@ listen(client)
     setting : uint8
     port : float
 
-message(client)
+receive_message(client)
     session : uint8
     distance : float
     text : uint8[]
