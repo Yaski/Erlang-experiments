@@ -17,7 +17,7 @@
     {codec_language_yecc_file, "priv/codecs_language_yecc.yrl"},
     {codec_language_neotoma_file, "priv/codecs_language_neotoma.peg"},
     {codec_templates, [
-%      {erlang, welcome_dtl, ".erl"},
+      {erlang, erlang_dtl, "{{codecname|snake_case|add:'_handler'}}.erl"},
       {csharp, csharp_dtl, "{{codecname|pascal_case|add:'Client'}}.cs"}
     ]},
     {codec_src_dir, "codecs_src"},

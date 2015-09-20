@@ -1,0 +1,17 @@
+{% if vars %}
+-record({{name}}, {
+  {% for var in vars %}
+  	{% if var.type == "uint8" %}
+  {{var.name|snake_case}} = 0 :: byte(){% if forloop.last %}{% else %},{% endif %}
+	  {% elif var.type == "int32" %}
+  {{var.name|snake_case}} = 0 :: integer(){% if forloop.last %}{% else %},{% endif %}
+		{% elif var.type == "float" %}
+  {{var.name|snake_case}} = 0 :: float(){% if forloop.last %}{% else %},{% endif %}
+	  {% elif var.type == "uint8[]" %}
+  {{var.name|snake_case}} = <<>> :: binary(){% if forloop.last %}{% else %},{% endif %}
+	  {% endif %}
+	{% endfor %}
+}).
+{% else %}
+-record({{name}}, {}).
+{% endif %}

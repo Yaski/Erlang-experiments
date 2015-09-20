@@ -1,0 +1,83 @@
+-module({{codecname|snake_case}}_handler).
+
+%% API
+-export([encode/1, decode/1]).
+
+% -===== SERVER =====-
+
+{% for p in packets|filter_packets:"server" %}
+{% include "erlang/record.dtl" with name=p.name|snake_case vars=p.variables %}
+{% endfor %}
+
+decode(<<Tag:8/unsigned-integer, Rest/binary>>) -> decode(Tag, Rest).
+
+{% for p in packets|filter_packets:"server" %}
+{% with packetname = p.name|snake_case %}
+	{% if p.variables %}
+decode({{p.tag}}, Data) ->
+  Rest0 = Data,
+		{% for v in p.variables %}
+		{% with rest0 = "Rest"|add:forloop.counter0 rest1 = "Rest"|add:forloop.counter %}
+		  	{% if v.type == "uint8" %}
+  {% templatetag openbrace %}{{v.name|pascal_case}}, {{rest1}}{% templatetag closebrace %} = decode_byte({{rest0}}),
+			{% elif v.type == "int32" %}
+  {% templatetag openbrace %}{{v.name|pascal_case}}, {{rest1}}{% templatetag closebrace %} = decode_int({{rest0}}),
+			{% elif v.type == "float" %}
+  {% templatetag openbrace %}{{v.name|pascal_case}}, {{rest1}}{% templatetag closebrace %} = decode_float({{rest0}}),
+			{% elif v.type == "uint8[]" %} 
+  {% templatetag openbrace %}{{v.name|pascal_case}}, {% if forloop.last %}_{% endif %}{{rest1}}{% templatetag closebrace %} = decode_bytes({{rest0}}),
+			{% endif %}
+		{% endwith %}
+		{% endfor %}
+  #{{packetname}}{
+		{% for v in p.variables %}
+    {{v.name|snake_case}} = {{v.name|pascal_case}}{% if forloop.last %}{% else %},{% endif %}
+		{% endfor %}
+  }{{forloop.last|yesno:".,;"}}
+  {% else %}
+decode({{p.tag}}, _Data) -> #{{packetname}}{}{{forloop.last|yesno:".,;"}}
+  {% endif %}
+{% endwith %}
+{% endfor %}
+
+% -===== CLIENT =====-
+
+{% for p in packets|filter_packets:"client" %}
+{% include "erlang/record.dtl" with name=p.name|snake_case vars=p.variables %}
+{% endfor %}
+
+{% for p in packets|filter_packets:"client" %}
+{% with packetname = p.name|snake_case %}
+	{% if p.variables %}
+encode(#{{packetname}}{} = P) -> [
+	<<{{p.tag}}:8/unsigned-integer>>,
+		{% for v in p.variables %}
+		  	{% if v.type == "uint8" %}
+	<<(P#{{packetname}}.{{v.name|snake_case}}):8/unsigned-integer>>{% if forloop.last %}{% else %},{% endif %}
+			{% elif v.type == "int32" %}
+	<<(P#{{packetname}}.{{v.name|snake_case}}):32/big-signed-integer>>{% if forloop.last %}{% else %},{% endif %}
+			{% elif v.type == "float" %}
+	<<(P#{{packetname}}.{{v.name|snake_case}}):32/big-float>>{% if forloop.last %}{% else %},{% endif %}
+			{% elif v.type == "uint8[]" %} 
+	<<(byte_size(P#{{packetname}}.{{v.name|snake_case}})):8/unsigned-integer>>,
+	P#{{packetname}}.{{v.name|snake_case}}{% if forloop.last %}{% else %},{% endif %}
+			{% endif %}
+		{% endfor %}
+  ]{{forloop.last|yesno:".,;"}}
+	{% else %}
+encode(#{{packetname}}{}) -> <<{{p.tag}}:8/unsigned-integer>>{{forloop.last|yesno:".,;"}}
+	{% endif %}
+{% endwith %}
+{% endfor %}
+
+% -===== INTERNAL =====-
+
+decode_byte(<<Val:8/unsigned-integer, Rest/binary>>) -> {Val, Rest}.
+
+decode_int(<<Val:32/big-signed-integer, Rest/binary>>) -> {Val, Rest}.
+
+decode_float(<<Val:32/big-float, Rest/binary>>) -> {Val, Rest}.
+
+decode_bytes(<<Len:8/unsigned-integer, Rest/binary>>) -> 
+	<<Bytes:Len/binary, Rest2/binary>> = Rest,
+	{Bytes, Rest2}.

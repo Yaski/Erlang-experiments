@@ -9,9 +9,7 @@ say(server)
     distance : float
     message : uint8[]
 
-listen(client)
-    setting : uint8
-    port : float
+update(client)
 
 receive_message(client)
     session : uint8
