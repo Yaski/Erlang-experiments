@@ -143,6 +143,7 @@ gen_codec(File, State) ->
           gen_codecs_by_templates(File, prepare_tokens(File, Tokens), Templates),
           Tokens;
         {error, {Line_number, _Module, Message}} ->
+          io:format(lists:flatten(io_lib:format("~p", [{error, {line, Line_number}, Message}]))),
           {error, {line, Line_number}, Message}
       end,
       ok = file:write_file(OutName2, io_lib:fwrite("~p", [Tokens2]));
@@ -172,7 +173,6 @@ generate_packets_tags([Packet | Rest], Index, Acc) ->
 %gen_codecs_by_templates(_One, _Two, _Three) -> ok.
 gen_codecs_by_templates(_File, _Tokens, []) -> ok;
 gen_codecs_by_templates(File, Tokens, [{Key, Module, Filename} | Rest]) ->
-%  OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), filename:basename(File, ".dsc") ++ Ext]),
   OutName = filename:join([application:get_env(binary_codec_test, codec_out_dir, "codecs"), gen_filename_by_template(Filename, Tokens)]),
   io:format("Render template ~p ~s~n", [Key, OutName]),
   {ok, List} = Module:render(Tokens),

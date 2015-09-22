@@ -35,7 +35,7 @@ version <- 'version : ' major:digit minor:('.' digit)?
   {version, [Major, Minor]}
 `;
 
-packet <- signature variables:(crlf variable)*
+packet <- signature variables:(crlf variable)* (crlf [.])?
 `
   [[Name, Params] | _Tail] = Node,
 

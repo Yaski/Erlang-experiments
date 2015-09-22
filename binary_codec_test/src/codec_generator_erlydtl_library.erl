@@ -14,9 +14,14 @@ inventory(filters) ->
 filter_packets(Value, Params) ->
   lists:filter(
     fun (Packet) ->
-      proplists:get_value(params, Packet) == Params end,
+      compare_params(proplists:get_value(params, Packet), Params) end,
     Value
   ).
+
+compare_params(One, Two) when is_binary(One), is_binary(Two) -> One == Two;
+compare_params(One, Two) when is_list(One), is_list(Two) -> One == Two;
+compare_params(One, Two) when is_binary(One), is_list(Two) -> compare_params(One, list_to_binary(Two));
+compare_params(One, Two) when is_list(One), is_binary(Two) -> compare_params(list_to_binary(One), Two).
 
 pascal_case(Value) when is_binary(Value) -> pascal_case(binary_to_list(Value));
 pascal_case(Value) ->

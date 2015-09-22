@@ -8,10 +8,11 @@ say(server)
     setting : int32
     distance : float
     message : uint8[]
-
+.
 update(client)
 
 receive_message(client)
     session : uint8
     distance : float
     text : uint8[]
+.

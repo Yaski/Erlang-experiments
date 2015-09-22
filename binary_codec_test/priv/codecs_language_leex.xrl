@@ -1,6 +1,6 @@
 Definitions.
 
-Type  = (uint8|int32|float|string)
+Type  = (uint8|int32|float|string|uint8\[\])
 Label = ([a-z]+[_0-9a-z]*)
 HexNumber = (#[0-9A-F]+)
 Version = ([0-9]+(\.[0-9]+)?)
@@ -20,6 +20,8 @@ Rules.
 : : {token, {type_colon, TokenLine}}.
 
 [\n\r]+ : {token, {new_line, TokenLine}}.
+
+\. : {token, {peof, TokenLine}}.
 
 [\s\t]+ : skip_token.
 
